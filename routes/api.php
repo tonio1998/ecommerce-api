@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Kreait\Firebase\Exception\Auth\FailedToVerifyToken;
+use Kreait\Firebase\Factory;
+use Kreait\Firebase\Http\HttpClientOptions;
+
 
 Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
 
@@ -66,9 +70,7 @@ Route::post('/login', function (Request $request) {
 Route::post('/auth/google', function (Request $request) {
     $request->validate([
         'token' => 'required|string',
-        'name' => 'required|string',
         'email' => 'required|string',
-        'photo' => 'nullable|string',
     ]);
 
     $http = Http::timeout(30);
@@ -95,7 +97,16 @@ Route::post('/auth/google', function (Request $request) {
     }
 
     $user = User::where('email', $email)->first();
-    if ($user) {
+    if (!$user) {
+        $new = User::create([
+            'email' => $email,
+            'password' => Str::random(16),
+            'name' => $name,
+            'avatar' => $request->input('photo'),
+        ]);
+
+        $new->assignRole('customer');
+    }else{
         $user->name = $name;
         $user->avatar = $request->input('photo');
         $user->save();
@@ -106,6 +117,6 @@ Route::post('/auth/google', function (Request $request) {
         'user' => $user,
         'roles' => $user->getRoleNames(),
         'permissions' => $user->getAllPermissions()->pluck('name'),
-        'EncryptedUserID' => $user->id,
+        'EncryptedUserID' => encrypt($user->id),
     ]);
 });
