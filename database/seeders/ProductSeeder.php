@@ -25,10 +25,14 @@ class ProductSeeder extends Seeder
                 'name'        => 'Product ' . $i,
                 'description' => 'Description for product ' . $i,
                 'price'       => rand(100, 5000),
+                'barcode'     => rand(10000, 99999),
                 'stock'       => rand(1, 100),
                 'status'      => 'active',
                 'created_at'  => now(),
                 'updated_at'  => now(),
+                'updated_by'  => 1,
+                'archived'    => 0,
+                'created_by'  => 1,
             ];
         }
 
