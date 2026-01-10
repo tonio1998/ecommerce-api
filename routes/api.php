@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\AUserController;
+use App\Http\Controllers\Api\VendorController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -10,11 +12,50 @@ use Illuminate\Support\Str;
 use Kreait\Firebase\Exception\Auth\FailedToVerifyToken;
 use Kreait\Firebase\Factory;
 use Kreait\Firebase\Http\HttpClientOptions;
+use App\Http\Controllers\Api\ProductController;
 
 
 Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
+    Route::get('users', function () {
+        return User::select('email', 'name', 'id', 'avatar')->get();
+    });
+
+    Route::prefix('products')->name('product.')->group(function () {
+        Route::get('/', [ProductController::class, 'index']);
+        Route::get('/sync', [ProductController::class, 'sync']);
+    });
+
+    Route::prefix('vendors')->name('vendor.')->group(function () {
+        Route::get('/', [VendorController::class, 'index']);
+        Route::post('/', [VendorController::class, 'store']);
+        Route::put('/{id}', [VendorController::class, 'update']);
+        Route::patch('/{id}/toggle', [VendorController::class, 'toggle']);
+    });
+
+    Route::prefix('user')->name('user.')->group(function () {
+        Route::post('/register-biometrics', [AUserController::class, 'registerBiometricLogin']);
+        Route::get('/', [AUserController::class, 'index']);
+        Route::get('/{id}', [AUserController::class, 'show']);
+        Route::post('/', [AUserController::class, 'store']);
+        Route::put('/{id}', [AUserController::class, 'update']);
+        Route::post('/roles-permission', [AUserController::class, 'getRolesPermissions']);
+        Route::post('/', [AUserController::class, 'store'])->name('store');
+        Route::get('{id}', [AUserController::class, 'show'])->name('show');
+        Route::put('{id}', [AUserController::class, 'update'])->name('update');
+        Route::post('list', [AUserController::class, 'list'])->name('add-student');
+        Route::post('/role', [AUserController::class, 'updateRole']);
+        Route::post('/save-fcm-token', [AUserController::class, 'saveFcmToken']);
+        Route::get('/access/{id}', function (Request $request) {
+            $user = User::find($request->id);
+            return response()->json([
+                'roles' => $user->getRoleNames(),
+                'permissions' => $user->getAllPermissions()->pluck('name'),
+            ]);
+        });
+    });
 
 });
+
 
 Route::post('/login', function (Request $request) {
     try {
